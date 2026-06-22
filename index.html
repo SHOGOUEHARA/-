@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>勤怠管理システム</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh}
+
+/* ===== LOGIN ===== */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+.login-card{background:#fff;border:1px solid #e0e0e0;border-radius:14px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:0 2px 16px rgba(0,0,0,0.06)}
+.login-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:2rem}
+.login-logo-icon{width:44px;height:44px;background:#185FA5;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px}
+.login-logo-text{font-size:20px;font-weight:600;color:#1a1a1a}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:13px;color:#666;margin-bottom:5px}
+.field input{width:100%;height:40px;border:1px solid #ddd;border-radius:8px;padding:0 12px;font-size:14px;background:#fff;color:#1a1a1a;transition:border-color .15s}
+.field input:focus{outline:none;border-color:#185FA5;box-shadow:0 0 0 3px rgba(24,95,165,0.1)}
+.btn-primary{width:100%;height:42px;background:#185FA5;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem;transition:background .15s}
+.btn-primary:hover{background:#0C447C}
+.login-error{font-size:13px;color:#c0392b;text-align:center;margin-top:.75rem;min-height:18px}
+.login-hint{font-size:12px;color:#999;text-align:center;margin-top:1rem;line-height:1.6}
+.login-admin-link{display:block;text-align:center;margin-top:1.25rem;font-size:13px;color:#185FA5;text-decoration:none;cursor:pointer}
+.login-admin-link:hover{text-decoration:underline}
+
+/* ===== TOPBAR ===== */
+.topbar{background:#fff;border-bottom:1px solid #e8e8e8;padding:0 1.5rem;height:54px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.topbar-logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:#1a1a1a}
+.topbar-logo-icon{width:30px;height:30px;background:#185FA5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13px;color:#666}
+.topbar-avatar{width:30px;height:30px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#185FA5}
+.btn-logout{font-size:12px;padding:5px 12px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#666;cursor:pointer;transition:background .15s}
+.btn-logout:hover{background:#f5f5f5}
+
+/* ===== MAIN LAYOUT ===== */
+.main-app{min-height:100vh;display:flex;flex-direction:column}
+.content{flex:1;padding:1.25rem;max-width:720px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:1rem}
+
+/* ===== TAB NAV ===== */
+.tab-nav{display:flex;gap:4px;background:#ececec;border-radius:10px;padding:3px}
+.tab-btn{flex:1;height:32px;border:none;border-radius:8px;font-size:13px;cursor:pointer;background:transparent;color:#666;transition:all .15s}
+.tab-btn.active{background:#fff;color:#1a1a1a;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+
+/* ===== STATUS CARD ===== */
+.card{background:#fff;border:1px solid #e8e8e8;border-radius:12px;padding:1.25rem}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.card-title{font-size:14px;font-weight:500;color:#1a1a1a}
+.date-label{font-size:13px;color:#888}
+
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:500}
+.status-badge.out{background:#EFF6FF;color:#185FA5}
+.status-badge.in{background:#F0FDF4;color:#15803d}
+.status-badge.break{background:#FFFBEB;color:#92400e}
+.status-badge.done{background:#F5F5F5;color:#555}
+
+.clock-row{display:flex;align-items:baseline;gap:4px;margin:0.75rem 0}
+.clock-hm{font-size:42px;font-weight:300;color:#1a1a1a;letter-spacing:-2px;font-variant-numeric:tabular-nums}
+.clock-s{font-size:22px;color:#aaa;font-variant-numeric:tabular-nums}
+
+.btns-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
+.btn-stamp{height:46px;border:1px solid #e0e0e0;border-radius:9px;font-size:14px;cursor:pointer;background:#fff;color:#1a1a1a;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.btn-stamp:hover:not(:disabled){background:#f5f5f5}
+.btn-stamp.style-in{background:#F0FDF4;border-color:#86efac;color:#15803d;font-weight:500}
+.btn-stamp.style-break{background:#FFFBEB;border-color:#fcd34d;color:#92400e;font-weight:500}
+.btn-stamp.style-out-active{background:#185FA5;border-color:#185FA5;color:#fff;font-weight:500}
+.btn-stamp:disabled{opacity:0.3;cursor:not-allowed}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.info-cell{background:#f8f8f8;border-radius:8px;padding:.75rem;text-align:center}
+.info-cell .lbl{font-size:11px;color:#888;margin-bottom:4px}
+.info-cell .val{font-size:17px;font-weight:500;color:#1a1a1a;font-variant-numeric:tabular-nums}
+
+/* ===== RECORDS ===== */
+.month-nav{display:flex;align-items:center;gap:8px}
+.btn-nav{width:30px;height:30px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;font-size:16px;transition:background .15s}
+.btn-nav:hover{background:#f5f5f5}
+.month-lbl{font-size:14px;font-weight:500;min-width:90px;text-align:center}
+
+table.rec-table{width:100%;border-collapse:collapse;font-size:13px}
+table.rec-table th{text-align:left;padding:7px 8px;color:#888;font-weight:400;border-bottom:1px solid #f0f0f0}
+table.rec-table td{padding:9px 8px;border-bottom:1px solid #f5f5f5;color:#1a1a1a}
+table.rec-table tr:last-child td{border-bottom:none}
+.badge-sm{font-size:11px;padding:2px 9px;border-radius:10px;display:inline-block}
+.badge-in{background:#F0FDF4;color:#15803d}
+.badge-done{background:#EFF6FF;color:#185FA5}
+.badge-absent{background:#f5f5f5;color:#888}
+.badge-break{background:#FFFBEB;color:#92400e}
+.empty-msg{text-align:center;padding:2.5rem;color:#aaa;font-size:13px}
+
+/* ===== ADMIN ===== */
+.admin-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+.admin-card{background:#fff;border:1px solid #e0e0e0;border-radius:14px;padding:2rem;width:100%;max-width:560px;box-shadow:0 2px 16px rgba(0,0,0,0.06)}
+.admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.admin-title{font-size:18px;font-weight:600}
+.admin-back{font-size:13px;color:#185FA5;background:none;border:none;cursor:pointer;padding:0}
+.admin-back:hover{text-decoration:underline}
+
+.user-list{border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;margin-bottom:1.5rem}
+.user-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f0f0;font-size:13px}
+.user-row:last-child{border-bottom:none}
+.user-row-id{font-weight:500;min-width:70px;color:#185FA5}
+.user-row-name{flex:1;color:#1a1a1a}
+.user-row-dept{color:#888;font-size:12px;min-width:80px}
+.btn-del{font-size:11px;padding:3px 9px;border:1px solid #f5c6c6;border-radius:6px;background:#fff5f5;color:#c0392b;cursor:pointer;transition:background .15s}
+.btn-del:hover{background:#fce8e8}
+
+.add-form{border:1px solid #e8e8e8;border-radius:10px;padding:1rem}
+.add-form-title{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:.75rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.form-full{grid-column:1/-1}
+.add-form input{width:100%;height:36px;border:1px solid #ddd;border-radius:7px;padding:0 10px;font-size:13px;color:#1a1a1a;background:#fff}
+.add-form input:focus{outline:none;border-color:#185FA5;box-shadow:0 0 0 3px rgba(24,95,165,0.1)}
+.btn-add{height:36px;background:#185FA5;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;padding:0 1.25rem;transition:background .15s}
+.btn-add:hover{background:#0C447C}
+.add-error{font-size:12px;color:#c0392b;margin-top:6px;min-height:16px}
+.admin-pass-hint{font-size:12px;color:#aaa;text-align:center;margin-top:1rem}
+
+.hidden{display:none!important}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ===== LOGIN ===== -->
+<div id="screen-login" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">⏱</div>
+      <span class="login-logo-text">勤怠管理</span>
+    </div>
+    <div class="field">
+      <label>社員ID</label>
+      <input type="text" id="inp-id" placeholder="例：E001" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>パスワード</label>
+      <input type="password" id="inp-pw" placeholder="パスワードを入力">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="login-error"></div>
+    <a class="login-admin-link" onclick="showAdmin()">&#9881; 管理者ページ（アカウント管理）</a>
+  </div>
+</div>
+
+<!-- ===== ADMIN ===== -->
+<div id="screen-admin" class="admin-wrap hidden">
+  <div class="admin-card">
+    <div class="admin-header">
+      <span class="admin-title">&#9881; アカウント管理</span>
+      <button class="admin-back" onclick="showLogin()">← ログインに戻る</button>
+    </div>
+
+    <div class="user-list" id="user-list"></div>
+
+    <div class="add-form">
+      <div class="add-form-title">新しいアカウントを追加</div>
+      <div class="form-grid">
+        <input type="text" id="new-id" placeholder="社員ID（例：E004）" autocomplete="off">
+        <input type="text" id="new-pw" placeholder="パスワード" autocomplete="off">
+        <input type="text" id="new-name" placeholder="氏名（例：山田 太郎）" autocomplete="off">
+        <input type="text" id="new-dept" placeholder="部署（例：営業部）" autocomplete="off">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn-add" onclick="addUser()">追加する</button>
+        <div class="add-error" id="add-error"></div>
+      </div>
+    </div>
+    <div class="admin-pass-hint">※ 管理者パスワード：<strong>admin123</strong>（変更するにはHTMLを編集してください）</div>
+  </div>
+</div>
+
+<!-- ===== ADMIN PASSWORD ===== -->
+<div id="screen-adminpw" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">&#9881;</div>
+      <span class="login-logo-text">管理者認証</span>
+    </div>
+    <div class="field">
+      <label>管理者パスワード</label>
+      <input type="password" id="inp-adminpw" placeholder="管理者パスワードを入力">
+    </div>
+    <button class="btn-primary" onclick="doAdminLogin()">認証する</button>
+    <div class="login-error" id="adminpw-error"></div>
+    <a class="login-admin-link" onclick="showLogin()">← ログインに戻る</a>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="screen-main" class="main-app hidden">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-icon">⏱</div>
+      勤怠管理
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-avatar" id="top-avatar"></div>
+      <span id="top-name"></span>
+      <button class="btn-logout" onclick="doLogout()">ログアウト</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="tab-nav">
+      <button class="tab-btn active" id="tab-today" onclick="switchTab('today')">今日の勤怠</button>
+      <button class="tab-btn" id="tab-records" onclick="switchTab('records')">勤怠履歴</button>
+    </div>
+
+    <!-- Today -->
+    <div id="panel-today">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">勤怠状況</span>
+          <span class="date-label" id="today-date"></span>
+        </div>
+        <div class="clock-row">
+          <span class="clock-hm" id="clock-hm">00:00</span>
+          <span class="clock-s" id="clock-s">:00</span>
+        </div>
+        <div style="margin-bottom:1rem">
+          <span class="status-badge out" id="status-badge">未出勤</span>
+        </div>
+        <div class="btns-row">
+          <button class="btn-stamp" id="btn-in" onclick="stamp('in')">▶ 出勤</button>
+          <button class="btn-stamp" id="btn-break" onclick="stamp('break')">☕ 休憩</button>
+          <button class="btn-stamp" id="btn-out" onclick="stamp('out')">■ 退勤</button>
+        </div>
+        <div class="info-grid">
+          <div class="info-cell"><div class="lbl">出勤時刻</div><div class="val" id="info-in">--:--</div></div>
+          <div class="info-cell"><div class="lbl">休憩時間</div><div class="val" id="info-break">0分</div></div>
+          <div class="info-cell"><div class="lbl">実働時間</div><div class="val" id="info-work">0h0m</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Records -->
+    <div id="panel-records" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">勤怠履歴</span>
+          <div class="month-nav">
+            <button class="btn-nav" onclick="changeMonth(-1)">‹</button>
+            <span class="month-lbl" id="month-lbl"></span>
+            <button class="btn-nav" onclick="changeMonth(1)">›</button>
+          </div>
+        </div>
+        <div id="records-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== DATA ==========
+const ADMIN_PW = 'admin123';
+
+function loadUsers() {
+  const def = {
+    'E001': {password:'pass1', name:'田中 一郎', dept:'営業部'},
+    'E002': {password:'pass2', name:'鈴木 花子', dept:'開発部'},
+    'E003': {password:'pass3', name:'佐藤 次郎', dept:'人事部'},
+  };
+  try { return JSON.parse(localStorage.getItem('kintai_users')) || def; } catch(e) { return def; }
+}
+function saveUsers(u) { localStorage.setItem('kintai_users', JSON.stringify(u)); }
+
+function loadAttendance() {
+  try { return JSON.parse(localStorage.getItem('kintai_attendance')) || {}; } catch(e) { return {}; }
+}
+function saveAttendance() { localStorage.setItem('kintai_attendance', JSON.stringify(attendance)); }
+
+let users = loadUsers();
+let attendance = loadAttendance();
+let currentUser = null;
+let clockTick = null;
+let viewMonth = null;
+let todayKey = '';
+
+// ========== UTILS ==========
+function fmt2(n) { return String(n).padStart(2,'0'); }
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${fmt2(d.getMonth()+1)}-${fmt2(d.getDate())}`;
+}
+function fmtTime(ts) {
+  if (!ts) return '--:--';
+  const d = new Date(ts);
+  return `${fmt2(d.getHours())}:${fmt2(d.getMinutes())}`;
+}
+function minsToHm(m) {
+  if (!m || m < 0) return '0h0m';
+  return `${Math.floor(m/60)}h${Math.round(m%60)}m`;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ========== SCREEN ==========
+function show(id) {
+  ['screen-login','screen-admin','screen-adminpw','screen-main'].forEach(s => {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  });
+}
+function showLogin() { show('screen-login'); }
+function showAdmin() { show('screen-adminpw'); document.getElementById('inp-adminpw').value=''; document.getElementById('adminpw-error').textContent=''; }
+
+function doAdminLogin() {
+  const pw = document.getElementById('inp-adminpw').value;
+  if (pw !== ADMIN_PW) { document.getElementById('adminpw-error').textContent='パスワードが正しくありません'; return; }
+  show('screen-admin');
+  renderUserList();
+}
+
+// ========== LOGIN ==========
+function doLogin() {
+  const id = document.getElementById('inp-id').value.trim();
+  const pw = document.getElementById('inp-pw').value;
+  const err = document.getElementById('login-error');
+  if (!users[id] || users[id].password !== pw) {
+    err.textContent = 'IDまたはパスワードが正しくありません';
+    return;
+  }
+  err.textContent = '';
+  currentUser = id;
+  if (!attendance[id]) attendance[id] = {};
+  todayKey = getTodayKey();
+  if (!attendance[id][todayKey]) attendance[id][todayKey] = {status:'out',inTime:null,outTime:null,breakStart:null,totalBreak:0};
+  const u = users[id];
+  const initials = u.name.split(' ').map(s=>s[0]).join('');
+  document.getElementById('top-avatar').textContent = initials;
+  document.getElementById('top-name').textContent = `${u.name}（${id}）`;
+  show('screen-main');
+  updateTodayUI();
+  startClock();
+  const now = new Date();
+  viewMonth = {y: now.getFullYear(), m: now.getMonth()};
+  renderRecords();
+  switchTab('today');
+}
+
+function doLogout() {
+  currentUser = null;
+  clearInterval(clockTick);
+  show('screen-login');
+  document.getElementById('inp-id').value = '';
+  document.getElementById('inp-pw').value = '';
+}
+
+// ========== CLOCK ==========
+function startClock() {
+  if (clockTick) clearInterval(clockTick);
+  function tick() {
+    const n = new Date();
+    document.getElementById('clock-hm').textContent = `${fmt2(n.getHours())}:${fmt2(n.getMinutes())}`;
+    document.getElementById('clock-s').textContent = `:${fmt2(n.getSeconds())}`;
+    updateWorkTime();
+  }
+  tick();
+  clockTick = setInterval(tick, 1000);
+}
+
+// ========== TODAY UI ==========
+function updateTodayUI() {
+  const d = new Date();
+  const days = ['日','月','火','水','木','金','土'];
+  document.getElementById('today-date').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+  const rec = attendance[currentUser][todayKey];
+  const badge = document.getElementById('status-badge');
+  const btnIn = document.getElementById('btn-in');
+  const btnBreak = document.getElementById('btn-break');
+  const btnOut = document.getElementById('btn-out');
+  btnIn.className='btn-stamp'; btnBreak.className='btn-stamp'; btnOut.className='btn-stamp';
+  btnIn.disabled=false; btnBreak.disabled=false; btnOut.disabled=false;
+
+  if (rec.status === 'out' && !rec.inTime) {
+    badge.textContent='未出勤'; badge.className='status-badge out';
+    btnIn.className='btn-stamp style-in'; btnBreak.disabled=true; btnOut.disabled=true;
+  } else if (rec.status === 'in') {
+    badge.textContent='勤務中'; badge.className='status-badge in';
+    btnIn.disabled=true; btnBreak.className='btn-stamp';
+    btnOut.className='btn-stamp style-out-active';
+  } else if (rec.status === 'break') {
+    badge.textContent='休憩中'; badge.className='status-badge break';
+    btnIn.disabled=true; btnBreak.className='btn-stamp style-break'; btnOut.disabled=true;
+  } else if (rec.status === 'done') {
+    badge.textContent='退勤済'; badge.className='status-badge done';
+    btnIn.disabled=true; btnBreak.disabled=true; btnOut.disabled=true;
+  }
+  document.getElementById('info-in').textContent = fmtTime(rec.inTime);
+}
+
+function updateWorkTime() {
+  if (!currentUser) return;
+  const rec = attendance[currentUser][todayKey];
+  document.getElementById('info-break').textContent = `${Math.round(rec.totalBreak)}分`;
+  if (!rec.inTime) { document.getElementById('info-work').textContent='0h0m'; return; }
+  const now = Date.now();
+  let elapsed = (now - rec.inTime) / 60000;
+  let brk = rec.totalBreak;
+  if (rec.status === 'break' && rec.breakStart) brk += (now - rec.breakStart) / 60000;
+  if (rec.outTime) elapsed = (rec.outTime - rec.inTime) / 60000;
+  document.getElementById('info-work').textContent = minsToHm(elapsed - brk);
+}
+
+// ========== STAMP ==========
+function stamp(type) {
+  const rec = attendance[currentUser][todayKey];
+  const now = Date.now();
+  if (type === 'in') {
+    if (rec.status !== 'out') return;
+    rec.inTime = now; rec.status = 'in';
+    showToast('出勤打刻しました ✓');
+  } else if (type === 'break') {
+    if (rec.status === 'in') {
+      rec.status = 'break'; rec.breakStart = now;
+      showToast('休憩開始しました');
+    } else if (rec.status === 'break') {
+      rec.totalBreak += (now - rec.breakStart) / 60000;
+      rec.breakStart = null; rec.status = 'in';
+      showToast('休憩終了しました ✓');
+    }
+  } else if (type === 'out') {
+    if (rec.status !== 'in') return;
+    rec.outTime = now; rec.status = 'done';
+    showToast('退勤打刻しました ✓');
+  }
+  saveAttendance();
+  updateTodayUI();
+  renderRecords();
+}
+
+// ========== TAB ==========
+function switchTab(tab) {
+  ['today','records'].forEach(t => {
+    document.getElementById(`tab-${t}`).className = 'tab-btn' + (t===tab?' active':'');
+    document.getElementById(`panel-${t}`).className = t===tab ? '' : 'hidden';
+  });
+}
+
+// ========== RECORDS ==========
+function changeMonth(d) {
+  viewMonth.m += d;
+  if (viewMonth.m < 0) { viewMonth.m=11; viewMonth.y--; }
+  if (viewMonth.m > 11) { viewMonth.m=0; viewMonth.y++; }
+  renderRecords();
+}
+
+function renderRecords() {
+  if (!currentUser) return;
+  const {y, m} = viewMonth;
+  document.getElementById('month-lbl').textContent = `${y}年${m+1}月`;
+  const days = new Date(y, m+1, 0).getDate();
+  const today = new Date(); today.setHours(23,59,59,999);
+  const userRec = attendance[currentUser] || {};
+  const rows = [];
+  for (let d = days; d >= 1; d--) {
+    const key = `${y}-${fmt2(m+1)}-${fmt2(d)}`;
+    const date = new Date(y, m, d);
+    if (date > today) continue;
+    const dow = ['日','月','火','水','木','金','土'][date.getDay()];
+    const isWeekend = date.getDay()===0||date.getDay()===6;
+    const rec = userRec[key];
+    let inT='--:--', outT='--:--', workH='--', breakT='--', badge='<span class="badge-sm badge-absent">未出勤</span>';
+    if (rec && rec.inTime) {
+      inT = fmtTime(rec.inTime);
+      badge = '<span class="badge-sm badge-in">出勤</span>';
+      breakT = `${Math.round(rec.totalBreak)}分`;
+      if (rec.outTime) {
+        outT = fmtTime(rec.outTime);
+        const elapsed = (rec.outTime - rec.inTime)/60000 - rec.totalBreak;
+        workH = minsToHm(elapsed);
+        badge = '<span class="badge-sm badge-done">退勤済</span>';
+      } else if (rec.status === 'break') {
+        badge = '<span class="badge-sm badge-break">休憩中</span>';
+      }
+    }
+    const color = isWeekend ? 'color:#c0392b' : '';
+    rows.push(`<tr>
+      <td style="${color}">${m+1}/${d}（${dow}）</td>
+      <td>${badge}</td>
+      <td>${inT}</td>
+      <td>${outT}</td>
+      <td>${workH}</td>
+      <td>${breakT}</td>
+    </tr>`);
+  }
+  const body = document.getElementById('records-body');
+  if (!rows.length) {
+    body.innerHTML = '<div class="empty-msg">この月の記録はありません</div>';
+  } else {
+    body.innerHTML = `<table class="rec-table">
+      <thead><tr><th>日付</th><th>状態</th><th>出勤</th><th>退勤</th><th>実働</th><th>休憩</th></tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>`;
+  }
+}
+
+// ========== ADMIN USER MGMT ==========
+function renderUserList() {
+  users = loadUsers();
+  const list = document.getElementById('user-list');
+  const entries = Object.entries(users);
+  if (!entries.length) { list.innerHTML='<div class="empty-msg">アカウントがありません</div>'; return; }
+  list.innerHTML = entries.map(([id, u]) => `
+    <div class="user-row">
+      <span class="user-row-id">${id}</span>
+      <span class="user-row-name">${u.name}</span>
+      <span class="user-row-dept">${u.dept||''}</span>
+      <button class="btn-del" onclick="deleteUser('${id}')">削除</button>
+    </div>
+  `).join('');
+}
+
+function addUser() {
+  const id = document.getElementById('new-id').value.trim();
+  const pw = document.getElementById('new-pw').value.trim();
+  const name = document.getElementById('new-name').value.trim();
+  const dept = document.getElementById('new-dept').value.trim();
+  const err = document.getElementById('add-error');
+  if (!id || !pw || !name) { err.textContent='ID・パスワード・氏名は必須です'; return; }
+  users = loadUsers();
+  if (users[id]) { err.textContent='そのIDはすでに存在します'; return; }
+  err.textContent='';
+  users[id] = {password: pw, name, dept};
+  saveUsers(users);
+  document.getElementById('new-id').value='';
+  document.getElementById('new-pw').value='';
+  document.getElementById('new-name').value='';
+  document.getElementById('new-dept').value='';
+  renderUserList();
+  showToast(`${name} さんを追加しました ✓`);
+}
+
+function deleteUser(id) {
+  if (!confirm(`「${users[id].name}」（${id}）を削除しますか？\n勤怠データも削除されます。`)) return;
+  users = loadUsers();
+  delete users[id];
+  saveUsers(users);
+  attendance = loadAttendance();
+  delete attendance[id];
+  saveAttendance();
+  renderUserList();
+  showToast('アカウントを削除しました');
+}
+
+// ========== KEYBOARD ==========
+document.getElementById('inp-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('inp-id').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('inp-pw').focus(); });
+document.getElementById('inp-adminpw').addEventListener('keydown', e => { if(e.key==='Enter') doAdminLogin(); });
+document.getElementById('new-dept').addEventListener('keydown', e => { if(e.key==='Enter') addUser(); });
+</script>
+</body>
+</html>
